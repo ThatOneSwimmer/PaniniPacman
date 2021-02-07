@@ -38,6 +38,11 @@ fn main() {
         let mut input_line = String::new();
         io::stdin().read_line(&mut input_line).unwrap();
         let visible_pac_count = parse_input!(input_line, i32); // How many players you can see inclusive of self
+
+
+        let mut player_pacs = Vec::new();  //Not sure if I declared these right, feel free to correct
+        let mut enemy_pacs = Vec::new();
+
         for i in 0..visible_pac_count as usize {
             let mut input_line = String::new();
             io::stdin().read_line(&mut input_line).unwrap();
@@ -46,10 +51,30 @@ fn main() {
             let mine = parse_input!(inputs[1], i32); // true if this pac is yours
             let x = parse_input!(inputs[2], i32); // position in the grid
             let y = parse_input!(inputs[3], i32); // position in the grid
+
+
+            //Creating the new pacman lists, I don't want to step on your toes too much James, but add/clean this up if I messed it up
+            //or didn't add enough - Berk
+            if mine==1 {
+            	let mut pac = Pacman{x, y, pac_id};
+            	player_pacs.push(pac);
+            }
+            else{
+            	let mut pac = Pacman{x, y, pac_id};
+            	enemy_pacs.push(pac);
+            }
+
+
             //let type_id = inputs[4].trim().to_string(); // unused in wood leagues
             //let speed_turns_left = parse_input!(inputs[5], i32); // unused in wood leagues
             //let ability_cooldown = parse_input!(inputs[6], i32); // unused in wood leagues
         }
+
+
+        //Initialize gamestate
+        let mut currentState = State{player_pacs, enemy_pacs, my_score, opponent_score, game_state.board}; //This starts with the original board
+        //- but we don't have a way to update the board as of yet with the pellet locations below, I'll start laying out some code for creating
+        // that
 
 
         let mut input_line = String::new();
@@ -62,6 +87,10 @@ fn main() {
             let x = parse_input!(inputs[0], i32);
             let y = parse_input!(inputs[1], i32);
             let value = parse_input!(inputs[2], i32); // amount of points this pellet is worth
+
+            //This is temporary
+            game_state.board[y][x] = value; //Not sure if I did this right
+
             //eprintln!("({}, {}): {}", x, y, value);
         }
 
