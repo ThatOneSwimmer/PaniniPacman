@@ -19,7 +19,7 @@ fn main() {
         let row = input_line.trim_matches('\n').to_string(); // one line of the grid: space " " is floor, pound "#" is wall
     }
 
-    let mut game_state = State{..Default::default()}; // Create empty game_state
+    let mut game_state = State{..Default::default()}; // Create empty game_state, @Berk we use this to store the current gamestate and update it each turn
 
     for y in 0..height {
         game_state.board.push(Vec::new());
@@ -47,20 +47,25 @@ fn main() {
             let mut input_line = String::new();
             io::stdin().read_line(&mut input_line).unwrap();
             let inputs = input_line.split(" ").collect::<Vec<_>>();
-            let pac_id = parse_input!(inputs[0], i32); // pac number (unique within a team)
-            let mine = parse_input!(inputs[1], i32); // true if this pac is yours
-            let x = parse_input!(inputs[2], i32); // position in the grid
-            let y = parse_input!(inputs[3], i32); // position in the grid
+            let pac_id = parse_input!(inputs[0], usize); // pac number (unique within a team)
+            let mine = parse_input!(inputs[1], usize); // true if this pac is yours
+            let x = parse_input!(inputs[2], usize); // position in the grid
+            let y = parse_input!(inputs[3], usize); // position in the grid
+            game_state.board[y][x] = 0; //deletes pellet from grid
 
-
-            //Creating the new pacman lists, I don't want to step on your toes too much James, but add/clean this up if I messed it up
-            //or didn't add enough - Berk
+            //Constructuro Berk used was broken so just used default and manually added values
             if mine==1 {
-            	let mut pac = Pacman{x, y, pac_id};
+            	let mut pac = Pacman{..Default::default()};
+                pac.id = pac_id;
+                pac.x = x;
+                pac.y = y;
             	player_pacs.push(pac);
             }
             else{
-            	let mut pac = Pacman{x, y, pac_id};
+            	let mut pac = Pacman{..Default::default()};
+                pac.id = pac_id;
+                pac.x = x;
+                pac.y = y;
             	enemy_pacs.push(pac);
             }
 
@@ -69,14 +74,8 @@ fn main() {
             //let speed_turns_left = parse_input!(inputs[5], i32); // unused in wood leagues
             //let ability_cooldown = parse_input!(inputs[6], i32); // unused in wood leagues
         }
-
-
-        //Initialize gamestate
-        let mut currentState = State{player_pacs, enemy_pacs, my_score, opponent_score, game_state.board}; //This starts with the original board
-        //- but we don't have a way to update the board as of yet with the pellet locations below, I'll start laying out some code for creating
-        // that
-
-
+        game_state.enemy_pacs = enemy_pacs;
+        game_state.player_pacs = player_pacs;
         let mut input_line = String::new();
         io::stdin().read_line(&mut input_line).unwrap();
         let visible_pellet_count = parse_input!(input_line, i32); // all pellets in sight
@@ -84,16 +83,22 @@ fn main() {
             let mut input_line = String::new();
             io::stdin().read_line(&mut input_line).unwrap();
             let inputs = input_line.split(" ").collect::<Vec<_>>();
-            let x = parse_input!(inputs[0], i32);
-            let y = parse_input!(inputs[1], i32);
-            let value = parse_input!(inputs[2], i32); // amount of points this pellet is worth
+            let x = parse_input!(inputs[0], usize); //redefined as usize
+            let y = parse_input!(inputs[1], usize);
+            let value = parse_input!(inputs[2], i8); // amount of points this pellet is worth
 
-            //This is temporary
-            game_state.board[y][x] = value; //Not sure if I did this right
+            
+            game_state.board[y][x] = value; 
 
             //eprintln!("({}, {}): {}", x, y, value);
         }
 
+        for y in 0..height as usize {
+            for x in 0..width as usize {
+                eprint!("{} ", game_state.board[y][x]);
+            }
+            eprintln!("");
+        }
         // Write an action using println!("message...");
         // To debug: eprintln!("Debug message...");
 
