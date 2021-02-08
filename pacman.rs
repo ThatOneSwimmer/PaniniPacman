@@ -5,30 +5,35 @@ macro_rules! parse_input {
 }
 
 fn main() {
+    // Read in static information about the board
     let mut input_line = String::new();
     io::stdin().read_line(&mut input_line).unwrap();
     let inputs = input_line.split(" ").collect::<Vec<_>>();
     let width = parse_input!(inputs[0], usize); // size of the grid
     let height = parse_input!(inputs[1], usize); // top left corner is (x=0, y=0)
-    // TODO: Design gamestate struct
-    // TODO: Create Pacman struct to nest in gamestate
-    // TODO: Build Map from inputs here as
-    for i in 0..height as usize {
-        let mut input_line = String::new();
-        io::stdin().read_line(&mut input_line).unwrap();
-        let row = input_line.trim_matches('\n').to_string(); // one line of the grid: space " " is floor, pound "#" is wall
-    }
 
-    let mut game_state = State{..Default::default()}; // Create empty game_state, @Berk we use this to store the current gamestate and update it each turn
+    let mut game_state = State{..Default::default()}; // Will be updating this each turn with current known information and values
 
-    for y in 0..height {
-        game_state.board.push(Vec::new());
-        for x in 0..width {
-            game_state.board[y].push(-1 as i8);
+    /*
+     * Generates board in a likely overcomplicated way, but reads in lines that the game wants you to.
+     * Builds only the original walls with no pacman or pellet values. Empty game board
+    */
+    for y in 0..height as usize { // From 0 to our known height
+        let mut input_line = String::new(); // Create a new string
+        io::stdin().read_line(&mut input_line).unwrap(); // Save the read line to input_line as String
+        // one line of the grid: space " " is floor, pound "#" is wall
+        let row_chars: Vec<_> = input_line.trim_matches('\n').to_string().chars().collect();  // Cleans up input line, makes it a String, makes it an array, converts it to a char iterator
+        game_state.board.push(Vec::new()); // Pushes a brand new empty row to our game board, as we are storing a vector of rows, creating the 2D array equivalent
+        for ch in row_chars { // For each char that we collected from the current input_line
+            if ch == '#' { // If it is a '#', it is a wall, which we store as -1
+                game_state.board[y].push(-1);
+            } else { // Otherwise, it is an empty space that will later be filled by some pellet value
+                game_state.board[y].push(0);
+            }
         }
     }
 
-    // game loop
+    // Main game loop
     loop {
         let mut input_line = String::new();
         io::stdin().read_line(&mut input_line).unwrap();
@@ -40,9 +45,13 @@ fn main() {
         let visible_pac_count = parse_input!(input_line, i32); // How many players you can see inclusive of self
 
 
-        let mut player_pacs = Vec::new();  //Not sure if I declared these right, feel free to correct
-        let mut enemy_pacs = Vec::new();
+        game_state.player_pacs = Vec::new(); // Clear player_pacs
+        game_state.enemy_pacs = Vec::new(); // Clear enemy_pacs
 
+        /*
+         * Reads in information for all pacman on the board
+         * Saves all player and enemy information to player_pacs and enemy_pacs respectively
+        */
         for i in 0..visible_pac_count as usize {
             let mut input_line = String::new();
             io::stdin().read_line(&mut input_line).unwrap();
@@ -51,31 +60,17 @@ fn main() {
             let mine = parse_input!(inputs[1], usize); // true if this pac is yours
             let x = parse_input!(inputs[2], usize); // position in the grid
             let y = parse_input!(inputs[3], usize); // position in the grid
-            game_state.board[y][x] = 0; //deletes pellet from grid
+            game_state.board[y][x] = 0; // Pacman ate pellet, remove from board
 
-            //Constructuro Berk used was broken so just used default and manually added values
-            if mine==1 {
-            	let mut pac = Pacman{..Default::default()};
-                pac.id = pac_id;
-                pac.x = x;
-                pac.y = y;
-            	player_pacs.push(pac);
+            match mine { // Is the current pac mine?
+                1 => game_state.player_pacs.push(Pacman{id: pac_id, x: x, y: y}), // Yes, add to player_pacs
+                _ => game_state.enemy_pacs.push(Pacman{id: pac_id, x: x, y: y}) // Nope, add it to enemy pacs
             }
-            else{
-            	let mut pac = Pacman{..Default::default()};
-                pac.id = pac_id;
-                pac.x = x;
-                pac.y = y;
-            	enemy_pacs.push(pac);
-            }
-
-
-            //let type_id = inputs[4].trim().to_string(); // unused in wood leagues
-            //let speed_turns_left = parse_input!(inputs[5], i32); // unused in wood leagues
-            //let ability_cooldown = parse_input!(inputs[6], i32); // unused in wood leagues
         }
-        game_state.enemy_pacs = enemy_pacs;
-        game_state.player_pacs = player_pacs;
+
+        /*
+         * Reads in all pellets on map and updates board with values
+        */
         let mut input_line = String::new();
         io::stdin().read_line(&mut input_line).unwrap();
         let visible_pellet_count = parse_input!(input_line, i32); // all pellets in sight
@@ -87,33 +82,42 @@ fn main() {
             let y = parse_input!(inputs[1], usize);
             let value = parse_input!(inputs[2], i8); // amount of points this pellet is worth
 
-            
-            game_state.board[y][x] = value; 
-
-            //eprintln!("({}, {}): {}", x, y, value);
+            game_state.board[y][x] = value; // Assign value to given coordinate on board
         }
 
-        for y in 0..height as usize {
-            for x in 0..width as usize {
-                eprint!("{} ", game_state.board[y][x]);
-            }
-            eprintln!("");
-        }
-        // Write an action using println!("message...");
-        // To debug: eprintln!("Debug message...");
+        // Printing only one pacman for each team
+        eprintln!("Player Pac: ({}, {})   Enemy Pac: ({}, {})",
+        game_state.player_pacs[0].x, game_state.player_pacs[0].y,
+        game_state.enemy_pacs[0].x, game_state.enemy_pacs[0].y);
+
+        print_board(&game_state.board, width, height); // Prints current board from game_state
 
         println!("MOVE 0 15 10"); // MOVE <pacId> <x> <y>
+    }
+}
 
-        /*
-        // Prints out current game_state.board
-        for y in 0..height {
-            for x in 0..width {
-                eprint!("{} ", game_state.board[y][x]);
+/*
+ * print_board() - Print referenced board pretty
+ * Pass in a given board of Vec<Vec<i8>>, and the width + height of board
+ * Each coordinate location has two character spots to be taken up
+ * Possible values are 0, 1, -1, and 10, which are automatically spaced properly
+ * to make an easy to read output for the console each turn
+*/
+fn print_board(board: &Vec<Vec<i8>>, width: usize, height: usize) {
+    for y in 0..height as usize {
+        for x in 0..width as usize {
+            let tile = board[y][x];
+            if tile == 1 { // It's a pellet! print '.'
+                eprint!(". ");
+            } else if tile == -1 { // Wall (-1), so print nothing
+                eprint!("  ", );
+            } else if tile == 0 { // Eaten pellet, print  '_'
+                eprint!("_ ");
+            } else { // Value is 10
+                eprint!("$ "); // Big money big money
             }
-            eprintln!("");
         }
-        */
-
+        eprintln!(""); // Ends the printing of the current row
     }
 }
 
@@ -163,3 +167,8 @@ impl Default for Pacman {
         return Pacman{x: 0, y: 0, id: 1000}
     }
 }
+
+// Lines taken from pacman reading loop, not used in wood leagues will add in later.
+//let type_id = inputs[4].trim().to_string(); // unused in wood leagues
+//let speed_turns_left = parse_input!(inputs[5], i32); // unused in wood leagues
+//let ability_cooldown = parse_input!(inputs[6], i32); // unused in wood leagues
