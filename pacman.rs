@@ -51,6 +51,7 @@ fn main() {
         /*
          * Reads in information for all pacman on the board
          * Saves all player and enemy information to player_pacs and enemy_pacs respectively
+         * TODO: Change how player/enemy pacs updated, don't remake vector'''''''s each time
         */
         for i in 0..visible_pac_count as usize {
             let mut input_line = String::new();
@@ -63,8 +64,8 @@ fn main() {
             game_state.board[y][x] = 0; // Pacman ate pellet, remove from board
 
             match mine { // Is the current pac mine?
-                1 => game_state.player_pacs.push(Pacman{id: pac_id, x: x, y: y}), // Yes, add to player_pacs
-                _ => game_state.enemy_pacs.push(Pacman{id: pac_id, x: x, y: y}) // Nope, add it to enemy pacs
+                1 => game_state.player_pacs.push(Pacman{id: pac_id, x: x, y: y, dest_x:10, dest_y:15}), // Yes, add to player_pacs
+                _ => game_state.enemy_pacs.push(Pacman{id: pac_id, x: x, y: y, dest_x:0, dest_y:0}) // Nope, add it to enemy pacs
             }
         }
 
@@ -81,8 +82,12 @@ fn main() {
             let x = parse_input!(inputs[0], usize); //redefined as usize
             let y = parse_input!(inputs[1], usize);
             let value = parse_input!(inputs[2], i8); // amount of points this pellet is worth
-
             game_state.board[y][x] = value; // Assign value to given coordinate on board
+
+        }
+
+        for i in 0..game_state.player_pacs.len as usize{
+            game_state = decide_destination(&game_state, game_state.player_pacs[i].pac_id);
         }
 
         // Printing only one pacman for each team
@@ -91,8 +96,10 @@ fn main() {
         game_state.enemy_pacs[0].x, game_state.enemy_pacs[0].y);
 
         print_board(&game_state.board, width, height); // Prints current board from game_state
-
-        println!("MOVE 0 15 10"); // MOVE <pacId> <x> <y>
+        
+        println!("MOVE {} {} {}", game_state.player_pacs[0].pac_id, 
+        game_state.player_pacs[0].dest_x, 
+        game_state.player_pacs[0].dest_y); // MOVE <pacId> <x> <y>
     }
 }
 
@@ -119,6 +126,12 @@ fn print_board(board: &Vec<Vec<i8>>, width: usize, height: usize) {
         }
         eprintln!(""); // Ends the printing of the current row
     }
+}
+
+fn decide_destination(state: &State, pac_id: usize) -> &State {
+    //TODO: MAKE LOGIC and return same reference
+    //Logic: find nearest pellet to move to
+    state
 }
 
 /*
@@ -155,6 +168,8 @@ struct Pacman {
     x: usize,
     y: usize,
     id: usize,
+    dest_x: usize,
+    dest_y: usize
 }
 
 /*
@@ -164,7 +179,7 @@ struct Pacman {
 */
 impl Default for Pacman {
     fn default() -> Pacman {
-        return Pacman{x: 0, y: 0, id: 1000}
+        return Pacman{x: 0, y: 0, id: 1000, dest_x: 0, dest_y: 0}
     }
 }
 
