@@ -86,21 +86,24 @@ fn main() {
 
         }
 
-        for i in 0..game_state.player_pacs.len() as usize{
-            let id = game_state.player_pacs[i].id;
-            decide_destination(&mut game_state, id);
+        /*
+         * Updates desintations for each pacman in
+         * game_state.player_pacs vector
+         * and builds output String object
+        */
+        let mut print_me = String::new(); // String object to build
+        for i in 0..game_state.player_pacs.len() as usize { // For all pacman in player_pacs
+            decide_destination(&mut game_state, i); // Update the pacman in game_state player pacman vector
+            let pac = game_state.player_pacs[i]; // Current pac we're looking at
+            let pac_move_info = format!("MOVE {} {} {}", pac.id, pac.dest_x, pac.dest_y); // Builds the pacman print statement
+            print_me.push_str(&pac_move_info); // Adds the current pacman move information to print_me
+            if i != game_state.player_pacs.len() - 1 { // If not the last pacman index
+                print_me.push_str("|") // Add a pipe to seperate inputs
+            }
         }
-
-        // Printing only one pacman for each team
-        eprintln!("Player Pac: ({}, {})   Enemy Pac: ({}, {})",
-        game_state.player_pacs[0].x, game_state.player_pacs[0].y,
-        game_state.enemy_pacs[0].x, game_state.enemy_pacs[0].y);
+        println!("{}", print_me); // Prints built String object
 
         print_board(&game_state.board, width, height); // Prints current board from game_state
-        
-        println!("MOVE {} {} {}", game_state.player_pacs[0].id, 
-        game_state.player_pacs[0].dest_x, 
-        game_state.player_pacs[0].dest_y); // MOVE <pacId> <x> <y>
     }
 }
 
@@ -129,45 +132,41 @@ fn print_board(board: &Vec<Vec<i8>>, width: usize, height: usize) {
     }
 }
 
-fn decide_destination(state: &mut State, pac_id: usize) {
-    //TODO: MAKE LOGIC and return same reference
-    //Logic: find nearest pellet to move to
-    for i in 0..state.player_pacs.len() as usize{
+/*
+ * decide_desintation() updates the pacman indexed at state.player_pacs[index]
+ * goal destination values of the current state
+ * Finds the nearest big pip if it exists, otherwise find closest pip
+*/
+fn decide_destination(state: &mut State, index: usize) {
+    let pac_id = state.player_pacs[index].id; // Get pac_id of currently indexed pac
+    for i in 0..state.player_pacs.len() as usize {
         if state.player_pacs[i].id == pac_id {
-            //eprintln!("here");
             /**
              *  if matching id want to iterate over board to find matching circumstance
              *  1. Closest big pellet
              *  2. Closest pellet
              *  3. random location
              */
-            let curr_x = state.player_pacs[i].x as i8; //need to transform for math
-            let curr_y = state.player_pacs[i].y as i8;
+            let curr_x = state.player_pacs[i].x;
+            let curr_y = state.player_pacs[i].y;
             let mut big_score = 0;
-            let mut dist = 100000;
+            let mut closest_dist = 100000;
             let mut goal_x = 0;
             let mut goal_y = 0;
-            for y in 0..state.board.len() { //iterate over board to find either closest pellet or big pellet, i think this logic is sound but osmeone should double check
+            for y in 0..state.board.len() { // Iterate over board to find either closest pellet or big pellet
                 for x in 0..state.board[y].len() {
-                    if state.board[y][x] != -1{
-                        if state.board[y][x] > big_score{
-                            //eprintln!("here");
+                    if state.board[y][x] != -1 { // If not wall
+                        if state.board[y][x] > big_score {
                             big_score = state.board[y][x];
-                            let int_y = y as i8; //need to transform for math
-                            let int_x = x as i8;
-                            let local_dist = calculate_distance(curr_y, curr_x, int_y, int_x);
                             goal_x = x;
                             goal_y = y;
-                            dist = local_dist;
-                        }
-                        else if state.board[y][x] == big_score{
-                            let int_y = y as i8; //need to transform for math
-                            let int_x = x as i8;
-                            let local_dist = calculate_distance(curr_y, curr_x, int_y, int_x);
-                            if  local_dist < dist {
+                            closest_dist = calculate_distance(curr_y, curr_x, goal_y, goal_x); // Manhattan distance from new goal
+                        } else if state.board[y][x] == big_score {
+                            let local_dist = calculate_distance(curr_y, curr_x, y, x); // Manhattan distance from coordinate
+                            if local_dist < closest_dist { // If the distance to current coordinate is closer than what we have, update
                                 goal_x = x;
                                 goal_y = y;
-                                dist = local_dist;
+                                closest_dist = local_dist;
                             }
                         }
                     }
@@ -180,16 +179,30 @@ fn decide_destination(state: &mut State, pac_id: usize) {
     }
 }
 
-/**
- *  Simple manhattan distance calculator
- */
-fn calculate_distance(curr_y: i8, curr_x: i8, goal_y: i8, goal_x: i8) -> usize{
-    let mut diff_y = curr_y-goal_y;
-    let mut diff_x = curr_x-goal_x;
-    diff_x = diff_x.abs();
-    diff_y = diff_y.abs();
-    let total = diff_x as usize + diff_y as usize;
-    total
+/*
+ * Simple manhattan distance calculator
+ * Processes all coordinates as usize
+ * Checks for and eliminates the possibility of negative operations
+*/
+fn calculate_distance(curr_y: usize, curr_x: usize, goal_y: usize, goal_x: usize) -> usize {
+    let mut diff_y: usize = 0; // Preemptively declare as usize
+    let mut diff_x: usize = 0; // Preemptively declare as usize
+
+    // Calculate diff_y
+    if curr_y > goal_y {
+        diff_y = curr_y - goal_y;
+    } else {
+        diff_y = goal_y - curr_y;
+    }
+
+    // Calculate diff_x
+    if curr_x > goal_x {
+        diff_x = curr_x - goal_x;
+    } else {
+        diff_x = goal_x - curr_x;
+    }
+
+    return diff_x + diff_y; // Manhattan distance
 }
 
 /*
@@ -222,6 +235,7 @@ impl Default for State {
  * Used to store individual Pacman information
  * x, y, and id
 */
+#[derive(Copy, Clone)]
 struct Pacman {
     x: usize,
     y: usize,
