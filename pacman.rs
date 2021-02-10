@@ -87,7 +87,8 @@ fn main() {
         }
 
         for i in 0..game_state.player_pacs.len() as usize{
-            game_state = *decide_destination(&game_state, game_state.player_pacs[i].id); //says we need to implement a copy function
+            let id = game_state.player_pacs[i].id;
+            decide_destination(&mut game_state, id);
         }
 
         // Printing only one pacman for each team
@@ -128,11 +129,12 @@ fn print_board(board: &Vec<Vec<i8>>, width: usize, height: usize) {
     }
 }
 
-fn decide_destination(state: &State, pac_id: usize) -> &State {
+fn decide_destination(state: &mut State, pac_id: usize) {
     //TODO: MAKE LOGIC and return same reference
     //Logic: find nearest pellet to move to
     for i in 0..state.player_pacs.len() as usize{
         if state.player_pacs[i].id == pac_id {
+            //eprintln!("here");
             /**
              *  if matching id want to iterate over board to find matching circumstance
              *  1. Closest big pellet
@@ -141,29 +143,41 @@ fn decide_destination(state: &State, pac_id: usize) -> &State {
              */
             let curr_x = state.player_pacs[i].x as i8; //need to transform for math
             let curr_y = state.player_pacs[i].y as i8;
-            let mut big_score = -2;
+            let mut big_score = 0;
             let mut dist = 100000;
             let mut goal_x = 0;
             let mut goal_y = 0;
             for y in 0..state.board.len() { //iterate over board to find either closest pellet or big pellet, i think this logic is sound but osmeone should double check
                 for x in 0..state.board[y].len() {
-                    if big_score <= state.board[y][x]{
-                        let int_y = y as i8; //need to transform for math
-                        let int_x = x as i8;
-                        let local_dist = calculate_distance(curr_y, curr_x, int_y, int_x);
-                        if  local_dist < dist {
+                    if state.board[y][x] != -1{
+                        if state.board[y][x] > big_score{
+                            //eprintln!("here");
+                            big_score = state.board[y][x];
+                            let int_y = y as i8; //need to transform for math
+                            let int_x = x as i8;
+                            let local_dist = calculate_distance(curr_y, curr_x, int_y, int_x);
                             goal_x = x;
                             goal_y = y;
                             dist = local_dist;
                         }
+                        else if state.board[y][x] == big_score{
+                            let int_y = y as i8; //need to transform for math
+                            let int_x = x as i8;
+                            let local_dist = calculate_distance(curr_y, curr_x, int_y, int_x);
+                            if  local_dist < dist {
+                                goal_x = x;
+                                goal_y = y;
+                                dist = local_dist;
+                            }
+                        }
                     }
                 }
             }
-            state.player_pacs[i].x = goal_x;
-            state.player_pacs[i].y = goal_y;
+            //eprintln!("{} {} {}", goal_x, goal_y, big_score);
+            state.player_pacs[i].dest_x = goal_x;
+            state.player_pacs[i].dest_y = goal_y;
         }
     }
-    state
 }
 
 /**
