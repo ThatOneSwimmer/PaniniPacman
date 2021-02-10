@@ -87,7 +87,7 @@ fn main() {
         }
 
         for i in 0..game_state.player_pacs.len() as usize{
-            game_state = decide_destination(&game_state, game_state.player_pacs[i].pac_id);
+            game_state = *decide_destination(&game_state, game_state.player_pacs[i].id); //says we need to implement a copy function
         }
 
         // Printing only one pacman for each team
@@ -97,7 +97,7 @@ fn main() {
 
         print_board(&game_state.board, width, height); // Prints current board from game_state
         
-        println!("MOVE {} {} {}", game_state.player_pacs[0].pac_id, 
+        println!("MOVE {} {} {}", game_state.player_pacs[0].id, 
         game_state.player_pacs[0].dest_x, 
         game_state.player_pacs[0].dest_y); // MOVE <pacId> <x> <y>
     }
@@ -174,8 +174,8 @@ fn calculate_distance(curr_y: i8, curr_x: i8, goal_y: i8, goal_x: i8) -> usize{
     let mut diff_x = curr_x-goal_x;
     diff_x = diff_x.abs();
     diff_y = diff_y.abs();
-    let total = (diff_x + diff_y) as usize;
-    total;
+    let total = diff_x as usize + diff_y as usize;
+    total
 }
 
 /*
