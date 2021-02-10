@@ -86,7 +86,7 @@ fn main() {
 
         }
 
-        for i in 0..game_state.player_pacs.len as usize{
+        for i in 0..game_state.player_pacs.len() as usize{
             game_state = decide_destination(&game_state, game_state.player_pacs[i].pac_id);
         }
 
@@ -131,7 +131,46 @@ fn print_board(board: &Vec<Vec<i8>>, width: usize, height: usize) {
 fn decide_destination(state: &State, pac_id: usize) -> &State {
     //TODO: MAKE LOGIC and return same reference
     //Logic: find nearest pellet to move to
+    for i in 0..state.player_pacs.len() as usize{
+        if state.player_pacs[i].id == pac_id {
+            /**
+             *  if matching id want to iterate over board to find matching circumstance
+             *  1. Closest big pellet
+             *  2. Closest pellet
+             *  3. random location
+             */
+            let curr_x = state.player_pacs[i].x as i8;
+            let curr_y = state.player_pacs[i].y as i8;
+            let mut big_score = 0;
+            let mut dist = 100000;
+            let mut goal_x = 0;
+            let mut goal_y = 0;
+            for y in 0..state.board.len() {
+                for x in 0..state.board[y].len() {
+                    if big_score <= state.board[y][x]{
+                        let int_y = y as i8;
+                        let int_x = x as i8;
+                        if calculate_distance(curr_y, curr_x, int_y, int_x) < dist{
+                            goal_x = x;
+                            goal_y = y;
+                        }
+                    }
+                }
+            }
+            state.player_pacs[i].x = goal_x;
+            state.player_pacs[i].y = goal_y;
+        }
+    }
     state
+}
+
+fn calculate_distance(curr_y: i8, curr_x: i8, goal_y: i8, goal_x: i8) -> usize{
+    let mut diff_y = curr_y-goal_y;
+    let mut diff_x = curr_x-goal_x;
+    diff_x = diff_x.abs();
+    diff_y = diff_y.abs();
+    let total = (diff_x + diff_y) as usize;
+    total;
 }
 
 /*
