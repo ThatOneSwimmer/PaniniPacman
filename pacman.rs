@@ -139,20 +139,22 @@ fn decide_destination(state: &State, pac_id: usize) -> &State {
              *  2. Closest pellet
              *  3. random location
              */
-            let curr_x = state.player_pacs[i].x as i8;
+            let curr_x = state.player_pacs[i].x as i8; //need to transform for math
             let curr_y = state.player_pacs[i].y as i8;
-            let mut big_score = 0;
+            let mut big_score = -2;
             let mut dist = 100000;
             let mut goal_x = 0;
             let mut goal_y = 0;
-            for y in 0..state.board.len() {
+            for y in 0..state.board.len() { //iterate over board to find either closest pellet or big pellet, i think this logic is sound but osmeone should double check
                 for x in 0..state.board[y].len() {
                     if big_score <= state.board[y][x]{
-                        let int_y = y as i8;
+                        let int_y = y as i8; //need to transform for math
                         let int_x = x as i8;
-                        if calculate_distance(curr_y, curr_x, int_y, int_x) < dist{
+                        let local_dist = calculate_distance(curr_y, curr_x, int_y, int_x);
+                        if  local_dist < dist {
                             goal_x = x;
                             goal_y = y;
+                            dist = local_dist;
                         }
                     }
                 }
@@ -164,6 +166,9 @@ fn decide_destination(state: &State, pac_id: usize) -> &State {
     state
 }
 
+/**
+ *  Simple manhattan distance calculator
+ */
 fn calculate_distance(curr_y: i8, curr_x: i8, goal_y: i8, goal_x: i8) -> usize{
     let mut diff_y = curr_y-goal_y;
     let mut diff_x = curr_x-goal_x;
