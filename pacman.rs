@@ -371,9 +371,11 @@ impl Default for Tile {
 //         move best path 
 // else
 //     calculate_paths with probabilities of distance d
-//     if enemy within range r && cooldown == 0
+//     if enemy within range r && cooldown == 0 && not in killing form
 //         switch to killing form
-//     else if enemy outside of range big_r && cooldown == 0
+//     else if enemy within range r && in killing form
+//         chase enemy
+//     else if enemy outside of range big_r && cooldown == 0 this one is optional
 //         speed boost
 //     else
 //         pick best path
