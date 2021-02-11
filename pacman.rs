@@ -37,6 +37,8 @@ fn main() {
         }
     }
 
+    populate_neighbors(&mut game_state);
+
     // Main game loop
     loop {
         let mut input_line = String::new();
@@ -97,6 +99,7 @@ fn main() {
         */
         let mut print_me = String::new(); // String object to build
         for i in 0..game_state.player_pacs.len() as usize { // For all pacman in player_pacs
+            breadth_first_search(&mut game_state, i);
             decide_destination(&mut game_state, i); // Update the pacman in game_state player pacman vector
             let pac = game_state.player_pacs[i]; // Current pac we're looking at
             let pac_move_info = format!("MOVE {} {} {}", pac.id, pac.dest_x, pac.dest_y); // Builds the pacman print statement
@@ -214,6 +217,7 @@ fn breadth_first_search(state: &mut State, index: usize){
     let mut curr_x = state.player_pacs[index].x;
     let mut curr_y = state.player_pacs[index].y;
     let mut curr_tile = state.board[curr_x][curr_y];
+    state.board[curr_x][curr_y].player_pacs[index] = 1;
     for tile in curr_tile.neighbors{
         if state.board[tile.1][tile.0].player_pacs[index] == 0{
             to_explore.push_back(state.board[tile.1][tile.0]);
