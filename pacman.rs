@@ -218,14 +218,19 @@ fn breadth_first_search(state: &mut State, index: usize){
         to_explore.push_back(state.board[tile.1][tile.0]);
     }
     let mut distance = 1;
-    while !to_explore.is_empty(){
-        for i in 0..to_explore.len(){
+    while !to_explore.is_empty(){ //This is probably really inefficent, but was easiest way i could think of to maintain distance count
+        let count = to_explore.len();
+        for i in 0..count{
             curr_tile = to_explore[i];
             curr_tile.player_pacs[index] = distance;
             for tile in curr_tile.neighbors{
                 to_explore.push(state.board[tile.1][tile.0]);
             }
         }
+        for i in 0..count{
+            to_explore.remove(i);
+        }
+        distance = distance + 1;
     }
 }
 
