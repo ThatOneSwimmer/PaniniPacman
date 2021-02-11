@@ -16,7 +16,8 @@ fn main() {
 
     /*
      * Generates board in a likely overcomplicated way, but reads in lines that the game wants you to.
-     * Builds only the original walls with no pacman or pellet values. Empty game board
+     * Builds only the original walls with no pacman or pellet values. Empty game board. POSSIBILITY: Remove and read into
+     * into unused variable and then generate board more efficiently if turn one is too slow.
     */
     for y in 0..height as usize { // From 0 to our known height
         let mut input_line = String::new(); // Create a new string
@@ -26,9 +27,11 @@ fn main() {
         game_state.board.push(Vec::new()); // Pushes a brand new empty row to our game board, as we are storing a vector of rows, creating the 2D array equivalent
         for ch in row_chars { // For each char that we collected from the current input_line
             if ch == '#' { // If it is a '#', it is a wall, which we store as -1
-                game_state.board[y].push(-1);
+                //game_state.board[y].push(-1);
+                game_state.board[y].push(Tile{value: -1.0,..Default::default()});
             } else { // Otherwise, it is an empty space that will later be filled by some pellet value
-                game_state.board[y].push(0);
+                //game_state.board[y].push(0);
+                game_state.board[y].push(Tile{value: 0.0,..Default::default()});
             }
         }
     }
@@ -61,7 +64,7 @@ fn main() {
             let mine = parse_input!(inputs[1], usize); // true if this pac is yours
             let x = parse_input!(inputs[2], usize); // position in the grid
             let y = parse_input!(inputs[3], usize); // position in the grid
-            game_state.board[y][x] = 0; // Pacman ate pellet, remove from board
+            game_state.board[y][x].value = 0.0; // Pacman ate pellet, remove from board
 
             match mine { // Is the current pac mine?
                 1 => game_state.player_pacs.push(Pacman{id: pac_id, x: x, y: y, dest_x:10, dest_y:15}), // Yes, add to player_pacs
@@ -81,8 +84,8 @@ fn main() {
             let inputs = input_line.split(" ").collect::<Vec<_>>();
             let x = parse_input!(inputs[0], usize); //redefined as usize
             let y = parse_input!(inputs[1], usize);
-            let value = parse_input!(inputs[2], i8); // amount of points this pellet is worth
-            game_state.board[y][x] = value; // Assign value to given coordinate on board
+            let value = parse_input!(inputs[2], f32); // amount of points this pellet is worth
+            game_state.board[y][x].value = value; // Assign value to given coordinate on board
 
         }
 
@@ -114,15 +117,15 @@ fn main() {
  * Possible values are 0, 1, -1, and 10, which are automatically spaced properly
  * to make an easy to read output for the console each turn
 */
-fn print_board(board: &Vec<Vec<i8>>, width: usize, height: usize) {
+fn print_board(board: &Vec<Vec<Tile>>, width: usize, height: usize) {
     for y in 0..height as usize {
         for x in 0..width as usize {
-            let tile = board[y][x];
-            if tile == 1 { // It's a pellet! print '.'
+            let tile = board[y][x].value;
+            if tile == 1.0 { // It's a pellet! print '.'
                 eprint!(". ");
-            } else if tile == -1 { // Wall (-1), so print nothing
+            } else if tile == -1.0 { // Wall (-1), so print nothing
                 eprint!("  ", );
-            } else if tile == 0 { // Eaten pellet, print  '_'
+            } else if tile == 0.0 { // Eaten pellet, print  '_'
                 eprint!("_ ");
             } else { // Value is 10
                 eprint!("$ "); // Big money big money
@@ -149,19 +152,19 @@ fn decide_destination(state: &mut State, index: usize) {
              */
             let curr_x = state.player_pacs[i].x;
             let curr_y = state.player_pacs[i].y;
-            let mut big_score = 0;
+            let mut big_score = 0.0;
             let mut closest_dist = 100000;
             let mut goal_x = 0;
             let mut goal_y = 0;
             for y in 0..state.board.len() { // Iterate over board to find either closest pellet or big pellet
                 for x in 0..state.board[y].len() {
-                    if state.board[y][x] != -1 { // If not wall
-                        if state.board[y][x] > big_score {
-                            big_score = state.board[y][x];
+                    if state.board[y][x].value != -1.0 { // If not wall
+                        if state.board[y][x].value > big_score {
+                            big_score = state.board[y][x].value;
                             goal_x = x;
                             goal_y = y;
                             closest_dist = calculate_distance(curr_y, curr_x, goal_y, goal_x); // Manhattan distance from new goal
-                        } else if state.board[y][x] == big_score {
+                        } else if state.board[y][x].value == big_score {
                             let local_dist = calculate_distance(curr_y, curr_x, y, x); // Manhattan distance from coordinate
                             if local_dist < closest_dist { // If the distance to current coordinate is closer than what we have, update
                                 goal_x = x;
@@ -219,7 +222,7 @@ struct State {
     enemy_pacs: Vec<Pacman>,
     player_score: usize,
     enemy_score: usize,
-    board: Vec<Vec<i8>>
+    board: Vec<Vec<Tile>>
 }
 
 /*
@@ -265,7 +268,7 @@ struct Tile {
 
 impl Default for Tile {
 	fn default() -> Tile {
-		return Tile{neighbors: Vec::new(), player_pacs[0 as usize; 5], enemy_pacs[0 as usize; 5], value: -1.0}
+		return Tile{neighbors: Vec::new(), player_pacs: [0 as usize; 5], enemy_pacs: [0 as usize; 5], value: -1.0}
 	}
 }
 
