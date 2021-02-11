@@ -215,7 +215,9 @@ fn breadth_first_search(state: &mut State, index: usize){
     let mut curr_y = state.player_pacs[index].y;
     let mut curr_tile = state.board[curr_x][curr_y];
     for tile in curr_tile.neighbors{
-        to_explore.push_back(state.board[tile.1][tile.0]);
+        if state.board[tile.1][tile.0].player_pacs[index] == 0{
+            to_explore.push_back(state.board[tile.1][tile.0]);
+        }
     }
     let mut distance = 1;
     while !to_explore.is_empty(){ //This is probably really inefficent, but was easiest way i could think of to maintain distance count
@@ -224,7 +226,9 @@ fn breadth_first_search(state: &mut State, index: usize){
             curr_tile = to_explore[i];
             curr_tile.player_pacs[index] = distance;
             for tile in curr_tile.neighbors{
-                to_explore.push(state.board[tile.1][tile.0]);
+                if state.board[tile.1][tile.0].player_pacs[index] == 0{
+                    to_explore.push_back(state.board[tile.1][tile.0]);
+                }
             }
         }
         for i in 0..count{
