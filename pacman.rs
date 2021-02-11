@@ -1,4 +1,5 @@
 use std::io;
+use std::collections::VecDeque;
 
 macro_rules! parse_input {
     ($x:expr, $t:ident) => ($x.trim().parse::<$t>().unwrap())
@@ -100,6 +101,7 @@ fn main() {
         let mut print_me = String::new(); // String object to build
         for i in 0..game_state.player_pacs.len() as usize { // For all pacman in player_pacs
             breadth_first_search(&mut game_state, i);
+            
             decide_destination(&mut game_state, i); // Update the pacman in game_state player pacman vector
             let pac = game_state.player_pacs[i]; // Current pac we're looking at
             let pac_move_info = format!("MOVE {} {} {}", pac.id, pac.dest_x, pac.dest_y); // Builds the pacman print statement
@@ -108,6 +110,7 @@ fn main() {
                 print_me.push_str("|") // Add a pipe to seperate inputs
             }
         }
+        eprintln!("{} {}", game_state.board[5][5].player_pacs[0], game_state.board[5][5].player_pacs[1]);
         println!("{}", print_me); // Prints built String object
 
         print_board(&game_state.board, width, height); // Prints current board from game_state
@@ -212,26 +215,31 @@ fn calculate_distance(curr_y: usize, curr_x: usize, goal_y: usize, goal_x: usize
     return diff_x + diff_y; // Manhattan distance
 }
 
+/*
+ * Fix references for comparison on 229 and 241
+*/
 fn breadth_first_search(state: &mut State, index: usize){
     let mut to_explore = VecDeque::new();
     let mut curr_x = state.player_pacs[index].x;
     let mut curr_y = state.player_pacs[index].y;
-    let mut curr_tile = state.board[curr_x][curr_y];
-    state.board[curr_x][curr_y].player_pacs[index] = 1;
-    for tile in curr_tile.neighbors{
-        if state.board[tile.1][tile.0].player_pacs[index] == 0{
-            to_explore.push_back(state.board[tile.1][tile.0]);
+    let mut curr_tile = &mut state.board[curr_y][curr_x];
+    curr_tile.player_pacs[index] = 1;
+    for tile in 0..curr_tile.neighbors.len(){
+        let mut val = 0 as &mut usize;
+        if &mut state.board[curr_tile.neighbors[tile].1][curr_tile.neighbors[tile].0].player_pacs[index] == val{
+            to_explore.push_back(state.board[curr_tile.neighbors[tile].1][curr_tile.neighbors[tile].0]);
         }
     }
     let mut distance = 1;
     while !to_explore.is_empty(){ //This is probably really inefficent, but was easiest way i could think of to maintain distance count
         let count = to_explore.len();
         for i in 0..count{
-            curr_tile = to_explore[i];
+            curr_tile = &mut to_explore[i];
             curr_tile.player_pacs[index] = distance;
-            for tile in curr_tile.neighbors{
-                if state.board[tile.1][tile.0].player_pacs[index] == 0{
-                    to_explore.push_back(state.board[tile.1][tile.0]);
+            for tile in 0..curr_tile.neighbors.len(){
+                let mut val = 0 as &mut usize;
+                if &mut state.board[curr_tile.neighbors[tile].1][curr_tile.neighbors[tile].0].player_pacs[index] == val{
+                    to_explore.push_back(state.board[curr_tile.neighbors[tile].1][curr_tile.neighbors[tile].0]);
                 }
             }
         }
@@ -253,30 +261,30 @@ fn populate_neighbors(state: &mut State){
     let mut bound_right = false;
     for y in 0..state.board.len(){
         for x in 0..state.board[y].len(){
-            if board[y][x].value == 0.0{
-                if y == 0 || board[y-1][x] == -1.0{
+            if state.board[y][x].value == 0.0{
+                if y == 0 || state.board[y-1][x].value < 0.0 {
                     bound_up = true;
                 }
-                if y == state.board.len()-1 || board[y+1][x] == -1.0{
+                if y == state.board.len()-1 || state.board[y+1][x].value < 0.0 {
                     bound_down =true;
                 }
-                if x == 0 || board[y][x-1] == -1.0 {
+                if x == 0 || state.board[y][x-1].value < 0.0 {
                     bound_left = true;
                 }
-                if x == state.board[y].len()-1 || board[y][x+1] == -1.0{
+                if x == state.board[y].len()-1 || state.board[y][x+1].value < 0.0 {
                     bound_right = true;
                 }
                 if !bound_up {
-                    board[y][x].neighbors.push((x,y-1));
+                    state.board[y][x].neighbors.push((x,y-1));
                 }
                 if !bound_down {
-                    board[y][x].neighbors.push((x,y+1));
+                    state.board[y][x].neighbors.push((x,y+1));
                 }
                 if !bound_left {
-                    board[y][x].neighbors.push((x-1,y));
+                    state.board[y][x].neighbors.push((x-1,y));
                 }
                 if !bound_right {
-                    board[y][x].neighbors.push((x+1,y));
+                    state.board[y][x].neighbors.push((x+1,y));
                 }
             }
         }
@@ -351,3 +359,21 @@ impl Default for Tile {
 //let type_id = inputs[4].trim().to_string(); // unused in wood leagues
 //let speed_turns_left = parse_input!(inputs[5], i32); // unused in wood leagues
 //let ability_cooldown = parse_input!(inputs[6], i32); // unused in wood leagues
+
+
+// decision making pseudo code
+
+// if no_enemies
+//     if big_pellet
+//         move to closest one
+//     else
+//         calculate_paths of distance d
+//         move best path 
+// else
+//     calculate_paths with probabilities
+//     if enemy within range r && cooldown == 0
+//         switch to killing form
+//     else if enemy outside of range big_r && cooldown == 0
+//         speed boost
+//     else
+//         pick best path
