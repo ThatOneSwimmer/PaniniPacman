@@ -32,6 +32,7 @@ fn main() {
             } else { // Otherwise, it is an empty space that will later be filled by some pellet value
                 //game_state.board[y].push(0);
                 game_state.board[y].push(Tile{value: 0.0,..Default::default()});
+                
             }
         }
     }
@@ -206,6 +207,67 @@ fn calculate_distance(curr_y: usize, curr_x: usize, goal_y: usize, goal_x: usize
     }
 
     return diff_x + diff_y; // Manhattan distance
+}
+
+fn breadth_first_search(state: &mut State, index: usize){
+    let mut to_explore = VecDeque::new();
+    let mut curr_x = state.player_pacs[index].x;
+    let mut curr_y = state.player_pacs[index].y;
+    let mut curr_tile = state.board[curr_x][curr_y];
+    for tile in curr_tile.neighbors{
+        to_explore.push_back(state.board[tile.1][tile.0]);
+    }
+    let mut distance = 1;
+    while !to_explore.is_empty(){
+        for i in 0..to_explore.len(){
+            curr_tile = to_explore[i];
+            curr_tile.player_pacs[index] = distance;
+            for tile in curr_tile.neighbors{
+                to_explore.push(state.board[tile.1][tile.0]);
+            }
+        }
+    }
+}
+
+/**
+ * Populates neighbor vec in each tile
+ * TODO: Handle board wrap around's
+ */
+fn populate_neighbors(state: &mut State){
+    let mut bound_up = false;
+    let mut bound_down = false;
+    let mut bound_left = false;
+    let mut bound_right = false;
+    for y in 0..state.board.len(){
+        for x in 0..state.board[y].len(){
+            if board[y][x].value == 0.0{
+                if y == 0 || board[y-1][x] == -1.0{
+                    bound_up = true;
+                }
+                if y == state.board.len()-1 || board[y+1][x] == -1.0{
+                    bound_down =true;
+                }
+                if x == 0 || board[y][x-1] == -1.0 {
+                    bound_left = true;
+                }
+                if x == state.board[y].len()-1 || board[y][x+1] == -1.0{
+                    bound_right = true;
+                }
+                if !bound_up {
+                    board[y][x].neighbors.push((x,y-1));
+                }
+                if !bound_down {
+                    board[y][x].neighbors.push((x,y+1));
+                }
+                if !bound_left {
+                    board[y][x].neighbors.push((x-1,y));
+                }
+                if !bound_right {
+                    board[y][x].neighbors.push((x+1,y));
+                }
+            }
+        }
+    }
 }
 
 /*
