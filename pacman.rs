@@ -255,6 +255,20 @@ impl Default for Pacman {
     }
 }
 
+
+struct Tile {
+	neighbors: Vec<(usize, usize)>,
+	player_pacs: [usize; 5],
+	enemy_pacs: [usize; 5],
+	value: f32 //Negative is a wall, 0 for taken, 1 for pellet, 10 for big
+}
+
+impl Default for Tile {
+	fn default() -> Tile {
+		return Tile{neighbors: Vec::new(), player_pacs[0 as usize; 5], enemy_pacs[0 as usize; 5], value: -1.0}
+	}
+}
+
 // Lines taken from pacman reading loop, not used in wood leagues will add in later.
 //let type_id = inputs[4].trim().to_string(); // unused in wood leagues
 //let speed_turns_left = parse_input!(inputs[5], i32); // unused in wood leagues
