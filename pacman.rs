@@ -377,3 +377,14 @@ impl Default for Tile {
 //         speed boost
 //     else
 //         pick best path
+
+/**
+ * Path evaluation equation
+ * 
+ * if enemy
+ *    val of tile = pellet_score - prob_enemy_taking
+ * else
+ *    val of tile = pellet_score
+ * 
+ * val of path = sum of tiles along path
+ */
