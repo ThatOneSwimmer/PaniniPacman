@@ -69,6 +69,10 @@ fn main() {
             let x = parse_input!(inputs[2], usize); // position in the grid
             let y = parse_input!(inputs[3], usize); // position in the grid
             game_state.board[y][x].value = 0.0; // Pacman ate pellet, remove from board
+            // Lines taken from pacman reading loop, not used in wood leagues will add in later.
+            let type_id = inputs[4].trim().to_string(); // unused in wood leagues
+            //let speed_turns_left = parse_input!(inputs[5], usize); // unused in wood leagues - Use to see if enemy has speed already activated
+            let ability_cooldown = parse_input!(inputs[6], usize); // unused in wood leagues
 
             match mine { // Is the current pac mine?
                 1 => game_state.player_pacs.push(Pacman{id: pac_id, x: x, y: y, dest_x:10, dest_y:15}), // Yes, add to player_pacs
@@ -104,7 +108,14 @@ fn main() {
 
             decide_destination(&mut game_state, i); // Update the pacman in game_state player pacman vector
             let pac = game_state.player_pacs[i]; // Current pac we're looking at
-            let pac_move_info = format!("MOVE {} {} {}", pac.id, pac.dest_x, pac.dest_y); // Builds the pacman print statement
+            let mut pac_move_info = "ERROR IN STRING BUILD";
+            if pac.action == 0 {
+                pac_move_info = format!("MOVE {} {} {}", pac.id, pac.dest_x, pac.dest_y); // Builds the pacman print statement
+            } else if pac.action == 1 {
+                pac_move_info = format!("SPEED {}", pac.id);
+            } else {
+                pac_move_info = format!("SWITCH {} {}", pac.id, pac.type);
+            }
             print_me.push_str(&pac_move_info); // Adds the current pacman move information to print_me
             if i != game_state.player_pacs.len() - 1 { // If not the last pacman index
                 print_me.push_str("|") // Add a pipe to seperate inputs
@@ -216,6 +227,33 @@ fn calculate_distance(curr_y: usize, curr_x: usize, goal_y: usize, goal_x: usize
 }
 
 /*
+fn breadth_first_search(state: &mut State, index: usize) {
+    let mut to_explore = VecDeque::new();
+    //let mut curr_tile = &mut state.board[state.player_pacs[index].y][state.player_pacs[index].x];
+    //curr_tile.player_pacs[index] = 1; // Makes sure the tile isn't readded after initial position is left
+    to_explore.push_back(&mut state.board[state.player_pacs[index].y][state.player_pacs[index].x]); // Push current tile
+    let mut curr_tile = &mut Tile {..Default::default()};
+    while !to_explore.is_empty() {
+        match to_explore.pop_front() {
+            Some(&mut tile) => curr_tile = tile,
+            None => ()
+        }
+        if curr_tile.player_pacs[index] == 0 {
+            curr_tile.player_pacs[index] = 1;
+        }
+        //curr_tile = to_explore.pop_front();
+        for neighbor in curr_tile.neighbors.iter() {
+            if state.board[neighbor.1][neighbor.0].player_pacs[index] == 0 {
+                state.board[neighbor.1][neighbor.0].player_pacs[index] = curr_tile.player_pacs[index] + 1;
+                state.board[neighbor.1][neighbor.0].origin_neighbors[index] = (curr_tile.x, curr_tile.y);
+                //to_explore.push_back(&mut state.board[neighbor.1][neighbor.0]);
+
+            }
+        }
+    }
+}
+*/
+/*
  * Fix references for comparison on 229 and 241
 
 fn breadth_first_search(state: &mut State, index: usize){
@@ -265,7 +303,9 @@ fn populate_neighbors(state: &mut State){
     let mut bound_right = false;
     for y in 0..state.board.len(){
         for x in 0..state.board[y].len(){
-            if state.board[y][x].value == 0.0{
+            state.board[y][x].x = x;
+            state.board[y][x].y = y;
+            if state.board[y][x].value == 0.0 {
                 if y == 0 || state.board[y-1][x].value < 0.0 {
                     bound_up = true;
                 }
@@ -331,7 +371,10 @@ struct Pacman {
     y: usize,
     id: usize,
     dest_x: usize,
-    dest_y: usize
+    dest_y: usize,
+    cd: usize, // Ability cooldown
+    action: usize, // 0 = Move, 1 = Speed, 2 = Shape SHIFT
+    type: usize // 0 = ROCK, 1 = PAPER, 2 = SCISSORS
 }
 
 /*
@@ -341,30 +384,26 @@ struct Pacman {
 */
 impl Default for Pacman {
     fn default() -> Pacman {
-        return Pacman{x: 0, y: 0, id: 1000, dest_x: 0, dest_y: 0}
+        return Pacman{x: 0, y: 0, id: 1000, dest_x: 0, dest_y: 0, cd: 0, action: 0, type: 0}
     }
 }
 
 
 struct Tile {
-	neighbors: Vec<(usize, usize)>,
+    x: usize,
+    y: usize,
+	neighbors: Vec<(usize, usize)>, // All possible traversable neighbors
 	player_pacs: [usize; 5],
 	enemy_pacs: [usize; 5],
-    origin_neighbor: [(usize, usize); 5],
+    origin_neighbors: [(usize, usize); 5], // Coordinate from where a given pac_id visited from, indexed by pac_id
 	value: f32 //Negative is a wall, 0 for taken, 1 for pellet, 10 for big
 }
 
 impl Default for Tile {
 	fn default() -> Tile {
-		return Tile{neighbors: Vec::new(), player_pacs: [0 as usize; 5], enemy_pacs: [0 as usize; 5], value: -1.0, origin_neighbor: [(0,0); 5]}
+		return Tile{x: 0, y: 0, neighbors: Vec::new(), player_pacs: [0 as usize; 5], enemy_pacs: [0 as usize; 5], value: -1.0, origin_neighbors: [(0,0); 5]}
 	}
 }
-
-// Lines taken from pacman reading loop, not used in wood leagues will add in later.
-//let type_id = inputs[4].trim().to_string(); // unused in wood leagues
-//let speed_turns_left = parse_input!(inputs[5], i32); // unused in wood leagues
-//let ability_cooldown = parse_input!(inputs[6], i32); // unused in wood leagues
-
 
 // decision making pseudo code
 
