@@ -100,7 +100,7 @@ fn main() {
         */
         let mut print_me = String::new(); // String object to build
         for i in 0..game_state.player_pacs.len() as usize { // For all pacman in player_pacs
-            breadth_first_search(&mut game_state, i);
+           // breadth_first_search(&mut game_state, i);
 
             decide_destination(&mut game_state, i); // Update the pacman in game_state player pacman vector
             let pac = game_state.player_pacs[i]; // Current pac we're looking at
@@ -350,13 +350,13 @@ struct Tile {
 	neighbors: Vec<(usize, usize)>,
 	player_pacs: [usize; 5],
 	enemy_pacs: [usize; 5],
-    //origin_neighbor: Tile,
+    origin_neighbor: [(usize, usize); 5],
 	value: f32 //Negative is a wall, 0 for taken, 1 for pellet, 10 for big
 }
 
 impl Default for Tile {
 	fn default() -> Tile {
-		return Tile{neighbors: Vec::new(), player_pacs: [0 as usize; 5], enemy_pacs: [0 as usize; 5], value: -1.0}
+		return Tile{neighbors: Vec::new(), player_pacs: [0 as usize; 5], enemy_pacs: [0 as usize; 5], value: -1.0, origin_neighbor: [(0,0); 5]}
 	}
 }
 
