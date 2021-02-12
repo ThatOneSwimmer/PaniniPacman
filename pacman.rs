@@ -1,5 +1,10 @@
+/*
+* TODO: Make each big pellets target by closest pac, uniquely
+*/
+
 use std::io;
 use std::collections::VecDeque;
+use rand::Rng;
 
 macro_rules! parse_input {
     ($x:expr, $t:ident) => ($x.trim().parse::<$t>().unwrap())
@@ -12,7 +17,7 @@ fn main() {
     let inputs = input_line.split(" ").collect::<Vec<_>>();
     let width = parse_input!(inputs[0], usize); // size of the grid
     let height = parse_input!(inputs[1], usize); // top left corner is (x=0, y=0)
-
+    let mut turn = 0;
     let mut game_state = State{..Default::default()}; // Will be updating this each turn with current known information and values
 
     /*
@@ -60,6 +65,7 @@ fn main() {
          * Saves all player and enemy information to player_pacs and enemy_pacs respectively
          * TODO: Change how player/enemy pacs updated, don't remake vector'''''''s each time
         */
+        game_state.previous_moves.push(Vec::new());
         for i in 0..visible_pac_count as usize {
             let mut input_line = String::new();
             io::stdin().read_line(&mut input_line).unwrap();
@@ -73,11 +79,26 @@ fn main() {
             let type_id = inputs[4].trim().to_string(); // unused in wood leagues
             //let speed_turns_left = parse_input!(inputs[5], usize); // unused in wood leagues - Use to see if enemy has speed already activated
             let ability_cooldown = parse_input!(inputs[6], usize); // unused in wood leagues
+            let mut form_id = 0;
+            if type_id == "PAPER"{
+                form_id = 1;
+            }
+            else if type_id == "SCISSORS"{
+                form_id = 2;
+            }
 
             match mine { // Is the current pac mine?
-                1 => game_state.player_pacs.push(Pacman{id: pac_id, x: x, y: y, dest_x:10, dest_y:15, action: 0, cd: 0, form: 0}), // Yes, add to player_pacs
-                _ => game_state.enemy_pacs.push(Pacman{id: pac_id, x: x, y: y, dest_x:0, dest_y:0, action: 0, cd: 0, form: 0}) // Nope, add it to enemy pacs
+                1 => {
+                    game_state.player_pacs.push(Pacman{id: pac_id, x: x, y: y, dest_x:10, dest_y:15, action: 0, cd: ability_cooldown, form: form_id, is_stuck: false});
+                    game_state.previous_moves[turn].push((x,y))}, // Yes, add to player_pacs
+                _ => game_state.enemy_pacs.push(Pacman{id: pac_id, x: x, y: y, dest_x:0, dest_y:0, action: 0, cd: 0, form: form_id, is_stuck: false}) // Nope, add it to enemy pacs
             }
+        }
+        if turn != 0{//can change to turn < 5 once implement deeper check
+            check_if_stuck(&mut game_state, turn);
+        }
+        for i in 0..game_state.player_pacs.len(){
+            eprintln!("ID: {}", game_state.player_pacs[i].id);
         }
 
         /*
@@ -104,9 +125,20 @@ fn main() {
         */
         let mut print_me = String::new(); // String object to build
         for i in 0..game_state.player_pacs.len() as usize { // For all pacman in player_pacs
-           // breadth_first_search(&mut game_state, i);
-
-            decide_destination(&mut game_state, i); // Update the pacman in game_state player pacman vector
+            // breadth_first_search(&mut game_state, i);
+            if turn == 0 || turn == 10{//PAC GO BRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR
+                game_state.player_pacs[i].action = 1;
+            } 
+            else if game_state.enemy_pacs.len() > 0 && game_state.player_pacs[i].cd == 0{
+                decide_enemy(&mut game_state, i, turn);
+            }
+            else{
+               decide_no_enemy(&mut game_state, i, turn); 
+            }
+            if game_state.player_pacs[i].is_stuck{
+                resolve_stuck(&mut game_state, i, width, height);
+            }
+            //decide_destination(&mut game_state, i); // Update the pacman in game_state player pacman vector
             let pac = game_state.player_pacs[i]; // Current pac we're looking at
             let mut pac_move_info = String::new();
             pac_move_info.push_str("ERROR IN STRING BUILD");
@@ -115,7 +147,15 @@ fn main() {
             } else if pac.action == 1 {
                 pac_move_info = format!("SPEED {}", pac.id);
             } else {
-                pac_move_info = format!("SWITCH {} {}", pac.id, pac.form);
+                if pac.form == 0{
+                    pac_move_info = format!("SWITCH {} ROCK", pac.id);
+                }
+                else if pac.form == 1{
+                    pac_move_info = format!("SWITCH {} PAPER", pac.id);
+                }
+                else{
+                    pac_move_info = format!("SWITCH {} SCISSORS", pac.id);
+                }
             }
             print_me.push_str(&pac_move_info); // Adds the current pacman move information to print_me
             if i != game_state.player_pacs.len() - 1 { // If not the last pacman index
@@ -126,6 +166,7 @@ fn main() {
         println!("{}", print_me); // Prints built String object
 
         print_board(&game_state.board, width, height); // Prints current board from game_state
+        turn = turn + 1;
     }
 }
 
@@ -159,46 +200,118 @@ fn print_board(board: &Vec<Vec<Tile>>, width: usize, height: usize) {
  * goal destination values of the current state
  * Finds the nearest big pip if it exists, otherwise find closest pip
 */
-fn decide_destination(state: &mut State, index: usize) {
-    let pac_id = state.player_pacs[index].id; // Get pac_id of currently indexed pac
-    for i in 0..state.player_pacs.len() as usize {
-        if state.player_pacs[i].id == pac_id {
-            /**
-             *  if matching id want to iterate over board to find matching circumstance
-             *  1. Closest big pellet
-             *  2. Closest pellet
-             *  3. random location
-             */
-            let curr_x = state.player_pacs[i].x;
-            let curr_y = state.player_pacs[i].y;
-            let mut big_score = 0.0;
-            let mut closest_dist = 100000;
-            let mut goal_x = 0;
-            let mut goal_y = 0;
-            for y in 0..state.board.len() { // Iterate over board to find either closest pellet or big pellet
-                for x in 0..state.board[y].len() {
-                    if state.board[y][x].value != -1.0 { // If not wall
-                        if state.board[y][x].value > big_score {
-                            big_score = state.board[y][x].value;
+fn decide_no_enemy(state: &mut State, index: usize, turn: usize) {
+    /**
+     *  if matching id want to iterate over board to find matching circumstance
+     *  1. Closest big pellet
+     *  2. Closest pellet
+     *  3. random location
+     */
+    let curr_x = state.player_pacs[index].x;
+    let curr_y = state.player_pacs[index].y;
+    let mut big_score = 0.0;
+    let mut closest_dist = 100000;
+    let mut goal_x = 0;
+    let mut goal_y = 0;
+    for y in 0..state.board.len() { // Iterate over board to find either closest pellet or big pellet
+        for x in 0..state.board[y].len() {
+            if state.board[y][x].value != -1.0 { // If not wall
+                if state.board[y][x].value > big_score {
+                    big_score = state.board[y][x].value;
+                    goal_x = x;
+                    goal_y = y;
+                    closest_dist = calculate_distance(curr_y, curr_x, goal_y, goal_x); // Manhattan distance from new goal
+                    } else if state.board[y][x].value == big_score {
+                        let local_dist = calculate_distance(curr_y, curr_x, y, x); // Manhattan distance from coordinate
+                        if local_dist < closest_dist { // If the distance to current coordinate is closer than what we have, update
                             goal_x = x;
                             goal_y = y;
-                            closest_dist = calculate_distance(curr_y, curr_x, goal_y, goal_x); // Manhattan distance from new goal
-                        } else if state.board[y][x].value == big_score {
-                            let local_dist = calculate_distance(curr_y, curr_x, y, x); // Manhattan distance from coordinate
-                            if local_dist < closest_dist { // If the distance to current coordinate is closer than what we have, update
-                                goal_x = x;
-                                goal_y = y;
-                                closest_dist = local_dist;
-                            }
+                            closest_dist = local_dist;
                         }
                     }
                 }
             }
-            //eprintln!("{} {} {}", goal_x, goal_y, big_score);
-            state.player_pacs[i].dest_x = goal_x;
-            state.player_pacs[i].dest_y = goal_y;
+        }
+    if big_score > 1.0{
+        state.board[goal_y][goal_x].value = 0.0;
+    }
+    state.player_pacs[index].dest_x = goal_x;
+    state.player_pacs[index].dest_y = goal_y;
+}
+
+fn decide_enemy(state: &mut State, index: usize, turn: usize){
+    let mut switch = false;
+    let mut enemy_index = 0;
+    for i in 0..state.enemy_pacs.len(){//check for if enemy is right next to us
+        if calculate_distance(state.player_pacs[index].x, state.player_pacs[index].y, state.enemy_pacs[i].x, state.enemy_pacs[i].y) <= 1{
+            enemy_index = i;
+            switch = true;
         }
     }
+    if switch{//either transform or speed
+        let enemy_type = state.enemy_pacs[enemy_index].form;
+        eprintln!("enemy id + type: {} {}", state.enemy_pacs[enemy_index].id, enemy_type);
+        if enemy_type == 0 { //enemy is rock
+            if state.player_pacs[index].form != 1{
+                state.player_pacs[index].action = 2;
+                state.player_pacs[index].form = 1;
+            }
+            else{
+                state.player_pacs[index].action = 1;
+            }
+        }
+        else if enemy_type == 1{ //enemy is paper
+            if state.player_pacs[index].form != 2{
+                state.player_pacs[index].action = 2;
+                state.player_pacs[index].form = 2;
+            }
+            else{
+                state.player_pacs[index].action = 1;
+            }
+        }
+        else{//enemy is scissors
+            if state.player_pacs[index].form != 0{
+                state.player_pacs[index].action = 2;
+                state.player_pacs[index].form = 0;
+            }
+            else{
+                state.player_pacs[index].action = 1;
+            }
+        }
+    }
+    else{//just move normally
+        decide_no_enemy(state, index, turn);
+    }
+}
+
+fn resolve_stuck(state: &mut State, index: usize, width: usize, height: usize){
+    // let upper_left = calculate_distance(state.player_pacs[index].x, state.player_pacs[index].y, 0,0);
+    // let bottom_right = calculate_distance(state.player_pacs[index].x, state.player_pacs[index].y, width, height);
+    // let upper_right = calculate_distance(state.player_pacs[index].x, state.player_pacs[index].y, width, 0);
+    // let bottom_left = calculate_distance(state.player_pacs[index].x, state.player_pacs[index].y, 0, height);
+    // eprintln!("{} {}", upper_left, bottom_right);
+    // if upper_left < bottom_right{//send (0,0)
+    //     eprintln!("{} going 0 0", index);
+    //     state.player_pacs[index].action = 0;
+    //     state.player_pacs[index].dest_x = 0;
+    //     state.player_pacs[index].dest_y = 0;
+    // }
+    // else if upper_left == bottom_right{//send(0,0)
+    //     state.player_pacs[index].action = 0;
+    //     state.player_pacs[index].dest_x = 0;
+    //     state.player_pacs[index].dest_y = 0;
+    // }
+    // else if
+    // else{//send (width-1,height-1)
+    //     state.player_pacs[index].action = 0;
+    //     state.player_pacs[index].dest_x = width-1;
+    //     state.player_pacs[index].dest_y = height-1;
+    // }
+    let mut rand_gen = rand::thread_rng();
+    state.player_pacs[index].action = 0;
+    state.player_pacs[index].dest_x = rand_gen.gen_range(0,width);
+    state.player_pacs[index].dest_y = rand_gen.gen_range(0,height);
+
 }
 
 /*
@@ -226,72 +339,6 @@ fn calculate_distance(curr_y: usize, curr_x: usize, goal_y: usize, goal_x: usize
 
     return diff_x + diff_y; // Manhattan distance
 }
-
-/*
-fn breadth_first_search(state: &mut State, index: usize) {
-    let mut to_explore = VecDeque::new();
-    //let mut curr_tile = &mut state.board[state.player_pacs[index].y][state.player_pacs[index].x];
-    //curr_tile.player_pacs[index] = 1; // Makes sure the tile isn't readded after initial position is left
-    to_explore.push_back(&mut state.board[state.player_pacs[index].y][state.player_pacs[index].x]); // Push current tile
-    let mut curr_tile = &mut Tile {..Default::default()};
-    while !to_explore.is_empty() {
-        match to_explore.pop_front() {
-            Some(&mut tile) => curr_tile = tile,
-            None => ()
-        }
-        if curr_tile.player_pacs[index] == 0 {
-            curr_tile.player_pacs[index] = 1;
-        }
-        //curr_tile = to_explore.pop_front();
-        for neighbor in curr_tile.neighbors.iter() {
-            if state.board[neighbor.1][neighbor.0].player_pacs[index] == 0 {
-                state.board[neighbor.1][neighbor.0].player_pacs[index] = curr_tile.player_pacs[index] + 1;
-                state.board[neighbor.1][neighbor.0].origin_neighbors[index] = (curr_tile.x, curr_tile.y);
-                //to_explore.push_back(&mut state.board[neighbor.1][neighbor.0]);
-
-            }
-        }
-    }
-}
-*/
-/*
- * Fix references for comparison on 229 and 241
-
-fn breadth_first_search(state: &mut State, index: usize){
-    let mut to_explore = VecDeque::new();
-    let mut curr_x = state.player_pacs[index].x;
-    let mut curr_y = state.player_pacs[index].y;
-    let mut curr_tile = &mut state.board[curr_y][curr_x];
-    curr_tile.player_pacs[index] = 1;
-    to_explore.push_back(curr_tile); // Push current tile
-    //to_explore.push_back(&mut state.board[curr_tile.neighbors[tile].1][curr_tile.neighbors[tile].0]);
-    /*
-    for tile in 0..curr_tile.neighbors.len() {
-        if state.board[curr_tile.neighbors[tile].1][curr_tile.neighbors[tile].0].player_pacs[index] == 0 { // Has the player visited this spot?
-            to_explore.push_back(&mut state.board[curr_tile.neighbors[tile].1][curr_tile.neighbors[tile].0]);
-        }
-    }
-    */
-    let mut distance = 1;
-    while !to_explore.is_empty() { // This is probably really inefficent, but was easiest way i could think of to maintain distance count
-        let count = to_explore.len();
-        for i in 0..count {
-            curr_tile = to_explore[i];
-            curr_tile.player_pacs[index] = distance;
-            for tile in 0..curr_tile.neighbors.len() {
-                let val = 0;
-                if state.board[curr_tile.neighbors[tile].1][curr_tile.neighbors[tile].0].player_pacs[index] == val {
-                    to_explore.push_back(&mut state.board[curr_tile.neighbors[tile].1][curr_tile.neighbors[tile].0]);
-                }
-            }
-        }
-        for i in 0..count{
-            to_explore.remove(i);
-        }
-        distance = distance + 1;
-    }
-}
-*/
 
 /**
  * Populates neighbor vec in each tile
@@ -336,6 +383,20 @@ fn populate_neighbors(state: &mut State){
     }
 }
 
+//return vec of indexes for stuck pac
+//TODO check for deeper move if stuck going back and forth
+fn check_if_stuck(state: &mut State, turn: usize){
+    for i in 0..state.player_pacs.len(){
+        let curr_x = state.player_pacs[i].x;
+        let curr_y = state.player_pacs[i].y;
+        let prev_x = state.previous_moves[turn-1][i].0;
+        let prev_y = state.previous_moves[turn-1][i].1;
+        if curr_x == prev_x && curr_y == prev_y{
+            state.player_pacs[i].is_stuck = true;
+        }
+    }
+}
+
 /*
  * struct State used to keep track of game
  *
@@ -350,7 +411,8 @@ struct State {
     enemy_pacs: Vec<Pacman>,
     player_score: usize,
     enemy_score: usize,
-    board: Vec<Vec<Tile>>
+    board: Vec<Vec<Tile>>,
+    previous_moves: Vec<Vec<(usize, usize)>>
 }
 
 /*
@@ -358,7 +420,7 @@ struct State {
 */
 impl Default for State {
     fn default() -> State {
-        return State{ player_pacs: Vec::new(), enemy_pacs: Vec::new(), player_score: 0, enemy_score: 0, board: Vec::new() }
+        return State{ player_pacs: Vec::new(), enemy_pacs: Vec::new(), player_score: 0, enemy_score: 0, board: Vec::new(), previous_moves: Vec::new() }
     }
 }
 
@@ -375,7 +437,8 @@ struct Pacman {
     dest_y: usize,
     cd: usize, // Ability cooldown
     action: usize, // 0 = Move, 1 = Speed, 2 = Shape SHIFT
-    form: usize // 0 = ROCK, 1 = PAPER, 2 = SCISSORS
+    form: usize, // 0 = ROCK, 1 = PAPER, 2 = SCISSORS
+    is_stuck: bool
 }
 
 /*
@@ -385,7 +448,7 @@ struct Pacman {
 */
 impl Default for Pacman {
     fn default() -> Pacman {
-        return Pacman{x: 0, y: 0, id: 1000, dest_x: 0, dest_y: 0, cd: 0, action: 0, form: 0}
+        return Pacman{x: 0, y: 0, id: 1000, dest_x: 0, dest_y: 0, cd: 0, action: 0, form: 0, is_stuck: false}
     }
 }
 
