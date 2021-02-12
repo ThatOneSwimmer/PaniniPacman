@@ -126,10 +126,7 @@ fn main() {
         let mut print_me = String::new(); // String object to build
         for i in 0..game_state.player_pacs.len() as usize { // For all pacman in player_pacs
             // breadth_first_search(&mut game_state, i);
-            if turn == 0 || turn == 10{//PAC GO BRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR
-                game_state.player_pacs[i].action = 1;
-            } 
-            else if game_state.enemy_pacs.len() > 0 && game_state.player_pacs[i].cd == 0{
+            if game_state.enemy_pacs.len() > 0 && game_state.player_pacs[i].cd == 0{
                 decide_enemy(&mut game_state, i, turn);
             }
             else{
