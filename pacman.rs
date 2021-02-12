@@ -75,8 +75,8 @@ fn main() {
             let ability_cooldown = parse_input!(inputs[6], usize); // unused in wood leagues
 
             match mine { // Is the current pac mine?
-                1 => game_state.player_pacs.push(Pacman{id: pac_id, x: x, y: y, dest_x:10, dest_y:15}), // Yes, add to player_pacs
-                _ => game_state.enemy_pacs.push(Pacman{id: pac_id, x: x, y: y, dest_x:0, dest_y:0}) // Nope, add it to enemy pacs
+                1 => game_state.player_pacs.push(Pacman{id: pac_id, x: x, y: y, dest_x:10, dest_y:15, action: 0, cd: 0, form: 0}), // Yes, add to player_pacs
+                _ => game_state.enemy_pacs.push(Pacman{id: pac_id, x: x, y: y, dest_x:0, dest_y:0, action: 0, cd: 0, form: 0}) // Nope, add it to enemy pacs
             }
         }
 
@@ -108,13 +108,14 @@ fn main() {
 
             decide_destination(&mut game_state, i); // Update the pacman in game_state player pacman vector
             let pac = game_state.player_pacs[i]; // Current pac we're looking at
-            let mut pac_move_info = "ERROR IN STRING BUILD";
+            let mut pac_move_info = String::new();
+            pac_move_info.push_str("ERROR IN STRING BUILD");
             if pac.action == 0 {
                 pac_move_info = format!("MOVE {} {} {}", pac.id, pac.dest_x, pac.dest_y); // Builds the pacman print statement
             } else if pac.action == 1 {
                 pac_move_info = format!("SPEED {}", pac.id);
             } else {
-                pac_move_info = format!("SWITCH {} {}", pac.id, pac.type);
+                pac_move_info = format!("SWITCH {} {}", pac.id, pac.form);
             }
             print_me.push_str(&pac_move_info); // Adds the current pacman move information to print_me
             if i != game_state.player_pacs.len() - 1 { // If not the last pacman index
@@ -374,7 +375,7 @@ struct Pacman {
     dest_y: usize,
     cd: usize, // Ability cooldown
     action: usize, // 0 = Move, 1 = Speed, 2 = Shape SHIFT
-    type: usize // 0 = ROCK, 1 = PAPER, 2 = SCISSORS
+    form: usize // 0 = ROCK, 1 = PAPER, 2 = SCISSORS
 }
 
 /*
@@ -384,7 +385,7 @@ struct Pacman {
 */
 impl Default for Pacman {
     fn default() -> Pacman {
-        return Pacman{x: 0, y: 0, id: 1000, dest_x: 0, dest_y: 0, cd: 0, action: 0, type: 0}
+        return Pacman{x: 0, y: 0, id: 1000, dest_x: 0, dest_y: 0, cd: 0, action: 0, form: 0}
     }
 }
 
