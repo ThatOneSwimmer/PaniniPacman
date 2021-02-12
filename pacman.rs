@@ -33,7 +33,7 @@ fn main() {
             } else { // Otherwise, it is an empty space that will later be filled by some pellet value
                 //game_state.board[y].push(0);
                 game_state.board[y].push(Tile{value: 0.0,..Default::default()});
-                
+
             }
         }
     }
@@ -101,7 +101,7 @@ fn main() {
         let mut print_me = String::new(); // String object to build
         for i in 0..game_state.player_pacs.len() as usize { // For all pacman in player_pacs
             breadth_first_search(&mut game_state, i);
-            
+
             decide_destination(&mut game_state, i); // Update the pacman in game_state player pacman vector
             let pac = game_state.player_pacs[i]; // Current pac we're looking at
             let pac_move_info = format!("MOVE {} {} {}", pac.id, pac.dest_x, pac.dest_y); // Builds the pacman print statement
@@ -217,29 +217,32 @@ fn calculate_distance(curr_y: usize, curr_x: usize, goal_y: usize, goal_x: usize
 
 /*
  * Fix references for comparison on 229 and 241
-*/
+
 fn breadth_first_search(state: &mut State, index: usize){
     let mut to_explore = VecDeque::new();
     let mut curr_x = state.player_pacs[index].x;
     let mut curr_y = state.player_pacs[index].y;
     let mut curr_tile = &mut state.board[curr_y][curr_x];
     curr_tile.player_pacs[index] = 1;
-    for tile in 0..curr_tile.neighbors.len(){
-        let mut val = 0 as &mut usize;
-        if &mut state.board[curr_tile.neighbors[tile].1][curr_tile.neighbors[tile].0].player_pacs[index] == val{
-            to_explore.push_back(state.board[curr_tile.neighbors[tile].1][curr_tile.neighbors[tile].0]);
+    to_explore.push_back(curr_tile); // Push current tile
+    //to_explore.push_back(&mut state.board[curr_tile.neighbors[tile].1][curr_tile.neighbors[tile].0]);
+    /*
+    for tile in 0..curr_tile.neighbors.len() {
+        if state.board[curr_tile.neighbors[tile].1][curr_tile.neighbors[tile].0].player_pacs[index] == 0 { // Has the player visited this spot?
+            to_explore.push_back(&mut state.board[curr_tile.neighbors[tile].1][curr_tile.neighbors[tile].0]);
         }
     }
+    */
     let mut distance = 1;
-    while !to_explore.is_empty(){ //This is probably really inefficent, but was easiest way i could think of to maintain distance count
+    while !to_explore.is_empty() { // This is probably really inefficent, but was easiest way i could think of to maintain distance count
         let count = to_explore.len();
-        for i in 0..count{
-            curr_tile = &mut to_explore[i];
+        for i in 0..count {
+            curr_tile = to_explore[i];
             curr_tile.player_pacs[index] = distance;
-            for tile in 0..curr_tile.neighbors.len(){
-                let mut val = 0 as &mut usize;
-                if &mut state.board[curr_tile.neighbors[tile].1][curr_tile.neighbors[tile].0].player_pacs[index] == val{
-                    to_explore.push_back(state.board[curr_tile.neighbors[tile].1][curr_tile.neighbors[tile].0]);
+            for tile in 0..curr_tile.neighbors.len() {
+                let val = 0;
+                if state.board[curr_tile.neighbors[tile].1][curr_tile.neighbors[tile].0].player_pacs[index] == val {
+                    to_explore.push_back(&mut state.board[curr_tile.neighbors[tile].1][curr_tile.neighbors[tile].0]);
                 }
             }
         }
@@ -249,6 +252,7 @@ fn breadth_first_search(state: &mut State, index: usize){
         distance = distance + 1;
     }
 }
+*/
 
 /**
  * Populates neighbor vec in each tile
@@ -301,7 +305,7 @@ fn populate_neighbors(state: &mut State){
  * BIGPIP = 10
 */
 struct State {
-    player_pacs: Vec<Pacman>,
+    player_pacs: Vec<Pacman>, // TODO: Change to array of 5 like in struct Tile. Would have to change the vec.push() earlier in code
     enemy_pacs: Vec<Pacman>,
     player_score: usize,
     enemy_score: usize,
@@ -346,6 +350,7 @@ struct Tile {
 	neighbors: Vec<(usize, usize)>,
 	player_pacs: [usize; 5],
 	enemy_pacs: [usize; 5],
+    //origin_neighbor: Tile,
 	value: f32 //Negative is a wall, 0 for taken, 1 for pellet, 10 for big
 }
 
@@ -368,7 +373,7 @@ impl Default for Tile {
 //         move to closest one
 //     else
 //         calculate_paths of distance d
-//         move best path 
+//         move best path
 // else
 //     calculate_paths with probabilities of distance d
 //     if enemy within range r && cooldown == 0 && not in killing form
@@ -380,13 +385,13 @@ impl Default for Tile {
 //     else
 //         pick best path
 
-/**
+/*
  * Path evaluation equation
- * 
+ *
  * if enemy
  *    val of tile = pellet_score - prob_enemy_taking
  * else
  *    val of tile = pellet_score
- * 
+ *
  * val of path = sum of tiles along path
- */
+*/
